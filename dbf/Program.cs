@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
 using System.Data;
 using System.Data.OleDb;
 using System.Text.RegularExpressions;
+using System.Web;
 
 namespace dbf {
     class Program {
@@ -47,7 +45,7 @@ namespace dbf {
 
             // query execution
             DataTable rs = new DataTable();
-            OleDbConnection db = new OleDbConnection(@"Provider=VFPOLEDB.1;Data Source=" + path );
+            OleDbConnection db = new OleDbConnection(@"Provider=VFPOLEDB.1;Data Source=" + path + "; Collating Sequence=machine");
             db.Open();
             if (db.State == ConnectionState.Open) {
                 try
@@ -74,15 +72,22 @@ namespace dbf {
          * */
         public static string DataTableToJSONWithStringBuilder(DataTable table) {
             var JSONString = new StringBuilder();
-            if (table.Rows.Count > 0) {
+            if (table.Rows.Count > 0)
+            {
                 JSONString.Append("[");
-                for (int i = 0; i < table.Rows.Count; i++) {
+                for (int i = 0; i < table.Rows.Count; i++)
+                {
                     JSONString.Append("{");
-                    for (int j = 0; j < table.Columns.Count; j++) {
-                        if (j < table.Columns.Count - 1)
-                            JSONString.Append("\"" + table.Columns[j].ColumnName.ToString() + "\":" + "\"" + table.Rows[i][j].ToString().Trim() + "\",");
-                        else if (j == table.Columns.Count - 1)
-                            JSONString.Append("\"" + table.Columns[j].ColumnName.ToString() + "\":" + "\"" + table.Rows[i][j].ToString().Trim() + "\"");
+                    for (int j = 0; j < table.Columns.Count; j++)
+                    {
+                        if (j < table.Columns.Count - 1) {
+                            JSONString.Append(HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Columns[j].ColumnName.ToString()), true) + ":"
+                            + HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Rows[i][j].ToString().Trim()), true) + ","
+                            );
+                        } else if (j == table.Columns.Count - 1)
+                            JSONString.Append(HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Columns[j].ColumnName.ToString()), true) + ":"
+                                + HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Rows[i][j].ToString().Trim()), true)
+                            );
                     }
                     if (i == table.Rows.Count - 1)
                         JSONString.Append("}");
@@ -91,7 +96,15 @@ namespace dbf {
                 }
                 JSONString.Append("]");
             }
+            else {
+                JSONString.Append("null");
+            }
             return JSONString.ToString();
+        }
+
+        private static string decodeDbfString(string value) {
+            byte[] A = Encoding.GetEncoding(Encoding.Default.CodePage).GetBytes(value);
+            return Encoding.Unicode.GetString((Encoding.Convert(Encoding.GetEncoding(850), Encoding.Unicode, A)));
         }
 
         public static void UsageMessage() {
