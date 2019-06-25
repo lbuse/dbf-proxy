@@ -11,7 +11,6 @@ namespace dbf {
     class Program {
         static void Main(string[] args) {
             string 
-                argName = null,
                 path = null,
                 sqlQuery = null;
 
@@ -24,7 +23,7 @@ namespace dbf {
                 Regex r1 = new Regex( @"^-{2}(.*)" );
                 Match match = r1.Match( args[ i ] );
                 if ( match.Success ) {
-                    argName = match.Groups[1].ToString().ToLower();
+                    string argName = match.Groups[1].ToString().ToLower();
                     if ( argName == "path" ) {
                         path = args[i + 1];
                         i++;
@@ -81,12 +80,12 @@ namespace dbf {
                     for (int j = 0; j < table.Columns.Count; j++)
                     {
                         if (j < table.Columns.Count - 1) {
-                            JSONString.Append(HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Columns[j].ColumnName.ToString()), true) + ":"
-                            + HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Rows[i][j].ToString().Trim()), true) + ","
+                            JSONString.Append(HttpUtility.JavaScriptStringEncode(table.Columns[j].ColumnName.ToString(), true) + ":"
+                            + HttpUtility.JavaScriptStringEncode(table.Rows[i][j].ToString().Trim(), true) + ","
                             );
                         } else if (j == table.Columns.Count - 1)
-                            JSONString.Append(HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Columns[j].ColumnName.ToString()), true) + ":"
-                                + HttpUtility.JavaScriptStringEncode(decodeDbfString(table.Rows[i][j].ToString().Trim()), true)
+                            JSONString.Append(HttpUtility.JavaScriptStringEncode(table.Columns[j].ColumnName.ToString(), true) + ":"
+                                + HttpUtility.JavaScriptStringEncode(table.Rows[i][j].ToString().Trim(), true)
                             );
                     }
                     if (i == table.Rows.Count - 1)
@@ -96,15 +95,9 @@ namespace dbf {
                 }
                 JSONString.Append("]");
             }
-            else {
-                JSONString.Append("null");
-            }
+            // Set the output encoding to the default one used in Nodejs
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
             return JSONString.ToString();
-        }
-
-        private static string decodeDbfString(string value) {
-            byte[] A = Encoding.GetEncoding(Encoding.Default.CodePage).GetBytes(value);
-            return Encoding.Unicode.GetString((Encoding.Convert(Encoding.GetEncoding(850), Encoding.Unicode, A)));
         }
 
         public static void UsageMessage() {
