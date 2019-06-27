@@ -50,17 +50,39 @@ namespace dbf {
             OleDbConnection db = new OleDbConnection(@"Provider=VFPOLEDB.1;Data Source=" + path + "; Collating Sequence=machine");
             db.Open();
             if (db.State == ConnectionState.Open) {
+                string sqlCommandType = "";
+                if (sqlQuery.Length > 0)
+                {
+                    string[] tokens = sqlQuery.Split(' ');
+                    sqlCommandType = tokens[0];
+                }
+
+                string result = "[]";
+                string[] updateCommands = { "UPDATE", "INSERT", "DELETE" };
+
                 try
                 {
                     OleDbCommand query = new OleDbCommand(sqlQuery, db);
-                    OleDbDataAdapter DA = new OleDbDataAdapter(query);
-                    DA.Fill(rs);
-                    db.Close();
-                    string result = DataTableToJson(rs);
+
+                    if (Array.Exists(updateCommands, element => element == sqlCommandType.ToUpper())) {
+                        result = "[{\"rows\":" + query.ExecuteNonQuery() + "}]";
+                    } else
+                    {
+                        OleDbDataAdapter DA = new OleDbDataAdapter(query);
+                        DA.Fill(rs);
+                        db.Close();
+                        result = DataTableToJson(rs);
+                    }
+
                     Console.WriteLine(result);
                 }
-                catch ( OleDbException ex ) {
+                catch (OleDbException ex)
+                {
                     ErrorMessage(ex.Message);
+                }
+                finally {
+                    if(db.State == ConnectionState.Open)
+                        db.Close();
                 }
                 
             }
