@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Text;
 using System.IO;
 
 using System.Data;
 using System.Data.OleDb;
 using System.Text.RegularExpressions;
-using System.Web;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace dbf {
     class Program {
@@ -13,6 +13,9 @@ namespace dbf {
             string 
                 path = null,
                 sqlQuery = null;
+
+            // Set the output encoding to the default one used in Nodejs
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
 
             // validate number of params
             if (args.Length != 4)
@@ -53,7 +56,7 @@ namespace dbf {
                     OleDbDataAdapter DA = new OleDbDataAdapter(query);
                     DA.Fill(rs);
                     db.Close();
-                    string result = DataTableToJSONWithStringBuilder(rs);
+                    string result = DataTableToJson(rs);
                     Console.WriteLine(result);
                 }
                 catch ( OleDbException ex ) {
@@ -65,39 +68,25 @@ namespace dbf {
                 ErrorMessage("database connection error");
         }
 
-        /**
-         * DataTable JSON encoder
-         * Source http://www.c-sharpcorner.com/UploadFile/9bff34/3-ways-to-convert-datatable-to-json-string-in-Asp-Net-C-Sharp/
-         * */
-        public static string DataTableToJSONWithStringBuilder(DataTable table) {
-            var JSONString = new StringBuilder();
-            if (table.Rows.Count > 0)
+        public static string DataTableToJson(DataTable table) {
+  
+            List<Dictionary<string, object>> parentRow = new List<Dictionary<string, object>>();
+            Dictionary<string, object> childRow;
+            foreach (DataRow row in table.Rows)
             {
-                JSONString.Append("[");
-                for (int i = 0; i < table.Rows.Count; i++)
+                childRow = new Dictionary<string, object>();
+                foreach (DataColumn col in table.Columns)
                 {
-                    JSONString.Append("{");
-                    for (int j = 0; j < table.Columns.Count; j++)
-                    {
-                        if (j < table.Columns.Count - 1) {
-                            JSONString.Append(HttpUtility.JavaScriptStringEncode(table.Columns[j].ColumnName.ToString(), true) + ":"
-                            + HttpUtility.JavaScriptStringEncode(table.Rows[i][j].ToString().Trim(), true) + ","
-                            );
-                        } else if (j == table.Columns.Count - 1)
-                            JSONString.Append(HttpUtility.JavaScriptStringEncode(table.Columns[j].ColumnName.ToString(), true) + ":"
-                                + HttpUtility.JavaScriptStringEncode(table.Rows[i][j].ToString().Trim(), true)
-                            );
-                    }
-                    if (i == table.Rows.Count - 1)
-                        JSONString.Append("}");
-                    else
-                        JSONString.Append("},");
+                    var value = row[col].GetType() == typeof(string)
+                            ? row[col].ToString().Trim()
+                            : row[col];
+
+                    childRow.Add(col.ColumnName, value);
                 }
-                JSONString.Append("]");
+                parentRow.Add(childRow);
             }
-            // Set the output encoding to the default one used in Nodejs
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
-            return JSONString.ToString();
+            return JsonConvert.SerializeObject(parentRow);
+            
         }
 
         public static void UsageMessage() {
