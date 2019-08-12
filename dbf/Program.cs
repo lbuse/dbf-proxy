@@ -14,6 +14,9 @@ namespace dbf {
                 path = null,
                 sqlQuery = null;
 
+            // Set the output encoding to the default one used in Nodejs
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
             // validate number of params
             if (args.Length != 4)
                 UsageMessage();
